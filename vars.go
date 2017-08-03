@@ -42,6 +42,22 @@ func main() {
 	pArr := [2]Person{p1, p2}
 	changeStructArr(pArr)
 	spew.Dump(pArr)
+	changeStructArr(pArr)
+	spew.Dump(pArr)
+
+	// struct array
+	spew.Println("=================== map")
+	m := map[string]string{
+		"name": "won",
+		"addr": "korea",
+	}
+	changeMap(m)
+	spew.Dump(m)
+
+}
+
+func changeMap(m map[string]string) {
+	m["name"] = "xxxxxxxxxxxxxx"
 }
 
 func changeIntArr(arr [3]int) {
