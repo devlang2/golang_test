@@ -23,8 +23,9 @@ func main() {
 
 	data := getData()
 
-	str := decrypt(data)
-	spew.Dump(str)
+	decrypt(data)
+	//	str := decrypt(data)
+	//	spew.Dump(str)
 }
 
 func decrypt(data []byte) string {
@@ -57,8 +58,10 @@ func decrypt(data []byte) string {
 	//	// a padding oracle.
 
 	data = bytes.TrimSuffix(data, []byte("."))
-	spew.Dump(data)
-	//	fmt.Printf("%s\n", data)
+
+	arr := bytes.Split(data, []byte("|"))
+	spew.Dump(arr)
+	//	fmt.Printf("%s\AQZSXW Qn", data)
 	//	// Output: exampleplaintext
 	//	data = bytes.TrimRight(data)
 	//	    bytes.TrimRight()
