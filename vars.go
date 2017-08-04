@@ -54,6 +54,16 @@ func main() {
 	changeMap(m)
 	spew.Dump(m)
 
+	// byte array
+	spew.Println("=================== byte")
+	b := []byte("hello world")
+	//	changeBytes(b)
+	spew.Dump(b)
+
+}
+
+func changeBytes(b []byte) {
+	b = []byte("xxxxxxxxxxxxxxx")
 }
 
 func changeMap(m map[string]string) {

@@ -49,14 +49,6 @@ func decrypt(data []byte) string {
 	//	// CryptBlocks can work in-place if the two arguments are the same.
 	mode.CryptBlocks(data, data)
 
-	//	// If the original plaintext lengths are not a multiple of the block
-	//	// size, padding would have to be added when encrypting, which would be
-	//	// removed at this point. For an example, see
-	//	// https://tools.ietf.org/html/rfc5246#section-6.2.3.2. However, it's
-	//	// critical to note that ciphertexts must be authenticated (i.e. by
-	//	// using crypto/hmac) before being decrypted in order to avoid creating
-	//	// a padding oracle.
-
 	data = bytes.TrimSuffix(data, []byte("."))
 
 	arr := bytes.Split(data, []byte("|"))
