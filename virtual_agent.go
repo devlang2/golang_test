@@ -4,6 +4,8 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
+	"os/signal"
+	"syscall"
 	//	"encoding/hex"
 	"flag"
 	"fmt"
@@ -11,12 +13,30 @@ import (
 	"log"
 	mathrand "math/rand"
 	"net"
+	"os"
+	"runtime"
 	"strings"
 	"time"
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/icrowley/fake"
 	"github.com/satori/go.uuid"
+)
+
+const (
+	DefaultAgentCount = 1
+	Sleep             = 10000
+	MacChars          = "abcdef0123456789"
+)
+
+var (
+	fs    *flag.FlagSet
+	count *int
+
+	agents []*Agent
+	random *mathrand.Rand                               // Rand for this package.
+	iv     = []byte("2981eeca66b5c3cd")                 // internal vector
+	key    = []byte("c43ac86d84469030f28c0a9656b1c533") // key
 )
 
 type Agent struct {
@@ -32,22 +52,66 @@ type Agent struct {
 	Data               []byte
 }
 
-var (
-	fs     *flag.FlagSet
-	count  *int
-	agents []*Agent
-	random *mathrand.Rand                               // Rand for this package.
-	iv     = []byte("2981eeca66b5c3cd")                 // internal vector
-	key    = []byte("c43ac86d84469030f28c0a9656b1c533") // key
-)
+func init() {
+	// Set CPU
+	runtime.GOMAXPROCS(1)
 
-const (
-	chars = "abcdef0123456789"
-)
+	// Check flags
+	fs = flag.NewFlagSet("", flag.ExitOnError)
+	count = fs.Int("count", DefaultAgentCount, "Agent count")
+	fs.Usage = printHelp
+	fs.Parse(os.Args[1:])
+
+	// Get random value
+	random = mathrand.New(mathrand.NewSource(time.Now().UnixNano()))
+
+	// Create virtual agent
+	log.Printf("Creating virtual agent.. %d", *count)
+	for i := 0; i < *count; i++ {
+		agents = append(agents, NewAgent())
+	}
+
+}
+func main() {
+
+	var str = "abc"
+	data_enc := Encrypt(str)
+	spew.Dump(data_enc)
+
+	// Set network
+	log.Printf("Setting network..")
+	ServerAddr, err := net.ResolveUDPAddr("udp", "127.0.0.1:19902")
+	CheckError(err)
+	LocalAddr, err := net.ResolveUDPAddr("udp", "127.0.0.1:0")
+	CheckError(err)
+
+	// Connect to server
+	Conn, err := net.DialUDP("udp", LocalAddr, ServerAddr)
+	CheckError(err)
+	defer Conn.Close()
+
+	// Send virtual agent data
+	go func() {
+		//		for {
+		t1 := time.Now()
+		for _, a := range agents {
+			//			spew.Dump(a.Data)
+			_, err = Conn.Write(a.Data)
+		}
+
+		log.Printf("Complete. Count: %d, Took: %s", len(agents), time.Since(t1))
+		//			time.Sleep(Sleep * time.Millisecond)
+		//		}
+
+	}()
+	//	spew.Dump(count)
+	waitForSignals()
+
+}
 
 func NewAgent() *Agent {
 	guid := uuid.NewV4()
-	mac := getIP() + ":" + getMac()
+	mac := getIP() + ":" + getVirtualMac()
 
 	agent := &Agent{
 		Code:               "00",
@@ -62,14 +126,17 @@ func NewAgent() *Agent {
 	}
 
 	text := fmt.Sprintf("%s|%s|%s|%s|%.1f|%d|%d|%s|%s", agent.Code, agent.Guid, agent.Eth, agent.ComputerName, agent.OsVersionNumber, agent.OsIsServer, agent.OsBit, agent.FullPolicyVersion, agent.TodayPolicyVersion)
-	b := encrypt(text)
+	b := Encrypt(text)
 	agent.Data = b
 	return agent
 }
 
-func encrypt(str string) []byte {
+func Encrypt(str string) []byte {
 
-	plaintext := pad([]byte(str))
+	b := []byte(str)
+	//	spew.Dump(b)
+	plaintext := pad(b)
+	spew.Dump(plaintext)
 
 	if len(plaintext)%aes.BlockSize != 0 {
 		panic("plaintext is not a multiple of the block size")
@@ -99,24 +166,47 @@ func encrypt(str string) []byte {
 	return ciphertext
 }
 
-func pad(in []byte) []byte {
-	padding := aes.BlockSize - (len(in) % aes.BlockSize)
-	if padding == 0 {
-		padding = aes.BlockSize
+func Decrypt(data []byte) ([]byte, error) {
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return []byte(""), err
 	}
-	for i := 0; i < padding; i++ {
-		in = append(in, byte(padding))
+
+	if len(data) < aes.BlockSize {
+		return []byte(""), fmt.Errorf("ciphertext too short")
+	}
+
+	if len(data)%aes.BlockSize != 0 {
+		return []byte(""), fmt.Errorf("ciphertext is not a multiple of the block size")
+	}
+
+	data_temp := make([]byte, len(data))
+	copy(data_temp, data)
+
+	mode := cipher.NewCBCDecrypter(block, iv)
+	mode.CryptBlocks(data_temp, data)
+
+	return data_temp, nil
+
+}
+
+func pad(in []byte) []byte {
+	remains := aes.BlockSize - (len(in) % aes.BlockSize)
+	if remains > 0 {
+		for i := 0; i < remains; i++ {
+			in = append(in, byte(0))
+		}
 	}
 	return in
 }
 
-func getMac() string {
+func getVirtualMac() string {
 	result := make([]byte, 17)
 	for i := range result {
 		if i > 0 && i%3 == 2 {
 			result[i] = ':'
 		} else {
-			result[i] = chars[random.Intn(len(chars))]
+			result[i] = MacChars[random.Intn(len(MacChars))]
 		}
 	}
 
@@ -138,52 +228,16 @@ func CheckError(err error) {
 	}
 }
 
-func init() {
-	// Flag
-	fs = flag.NewFlagSet("", flag.ExitOnError)
-	count = fs.Int("count", 2, "Agent count")
-
-	// Random
-	random = mathrand.New(mathrand.NewSource(time.Now().UnixNano()))
-
-	// Create virtual agent
-	for i := 0; i < *count; i++ {
-		agents = append(agents, NewAgent())
-		//		spew.Dump()
+func waitForSignals() {
+	signalCh := make(chan os.Signal, 1)
+	signal.Notify(signalCh, os.Interrupt, syscall.SIGTERM)
+	select {
+	case <-signalCh:
+		log.Println("signal received, shutting down...")
 	}
-
 }
 
-func main() {
-	log.Println("main")
-	//	for _, a := range agents {
-	//		//		fmt.Printf("%s|%s|%s|%s|%.1f|%d|%d|%s|%s\n", a.Code, a.Guid, a.Eth, a.ComputerName, a.OsVersionNumber, a.OsIsServer, a.OsBit, a.FullPolicyVersion, a.TodayPolicyVersion)
-	//	}
-
-	// Set network
-	ServerAddr, err := net.ResolveUDPAddr("udp", "127.0.0.1:19902")
-	CheckError(err)
-	LocalAddr, err := net.ResolveUDPAddr("udp", "127.0.0.1:0")
-	CheckError(err)
-
-	// Connect to server
-	Conn, err := net.DialUDP("udp", LocalAddr, ServerAddr)
-	CheckError(err)
-	defer Conn.Close()
-
-	spew.Dump()
-	//	rand.Seed(100)
-
-	for _, a := range agents {
-		_, err = Conn.Write(a.Data)
-	}
-
-	//	i := 1
-	//	str := "6ce89c7ea611a74d7b01129585a877927cf4c534cf42ca5b05cc7ac972cd976f1f8cede5628c7e47ae6ee63ca06b4d9fc0fd41910d6ee81341faeb19a2876fc8beb6b548e5e47726e53cb5de15d0147fb878bbfbfa6d26879858a34ff89d0d6db5d5b7d0dbefc646be21a0e3edd15f6b076097257f39d6a779b42fe0776feadd646b4a05eb263abce3e8d087a1daac1beae7c5cd8cf6773db524a00971594d9f2714c671c9b5c32b5c38fe3cf264d3fcb4462e62e394755824d1668d45a1e7a9cb8d036cc82cf647b28f256139100a9176d9797ba7f3d8fbf9cd3d022b9c6c94779bb2c95f1dae4158c5fe144e4dfd6d"
-	//	for i <= *count {
-
-	//		b, _ := hex.DecodeString(str)
-	//		_, err = Conn.Write(b)
-	//		i++
-	//	}
+func printHelp() {
+	fmt.Println("virtual_agent [options]")
+	fs.PrintDefaults()
 }

@@ -56,9 +56,18 @@ func main() {
 
 	// byte array
 	spew.Println("=================== byte")
-	b := []byte("hello world")
-	//	changeBytes(b)
-	spew.Dump(b)
+	buf := make([]byte, 10)
+	spew.Dump(buf)
+	buf = append(buf, byte(33))
+	spew.Dump(buf)
+	buf = append(buf, byte(44))
+	spew.Dump(buf)
+	buf_temp := buf[:9]
+	spew.Dump(buf)
+	buf_temp = append(buf_temp, byte(33))
+	spew.Dump(buf)
+	buf_temp = append(buf_temp, byte(44))
+	spew.Dump(buf)
 
 }
 
