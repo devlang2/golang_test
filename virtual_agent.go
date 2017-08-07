@@ -1,15 +1,15 @@
 package main
 
 import (
-	"crypto/aes"
-	"crypto/cipher"
-	"crypto/rand"
+	//	"crypto/aes"
+	//	"crypto/cipher"
+	//	"crypto/rand"
 	"os/signal"
 	"syscall"
 	//	"encoding/hex"
 	"flag"
 	"fmt"
-	"io"
+	//	"io"
 	"log"
 	mathrand "math/rand"
 	"net"
@@ -20,14 +20,14 @@ import (
 
 	"github.com/iwondory/encryption"
 
-	"github.com/davecgh/go-spew/spew"
+	//	"github.com/davecgh/go-spew/spew"
 	"github.com/icrowley/fake"
 	"github.com/satori/go.uuid"
 )
 
 const (
 	DefaultAgentCount = 1
-	Sleep             = 10000
+	Sleep             = 5000
 	MacChars          = "abcdef0123456789"
 )
 
@@ -36,9 +36,9 @@ var (
 	count *int
 
 	agents []*Agent
-	random *mathrand.Rand                               // Rand for this package.
-	iv     = []byte("2981eeca66b5c3cd")                 // internal vector
-	key    = []byte("c43ac86d84469030f28c0a9656b1c533") // key
+	random *mathrand.Rand // Rand for this package.
+	//	iv     = []byte("2981eeca66b5c3cd")                 // internal vector
+	key = []byte("c43ac86d84469030f28c0a9656b1c533") // key
 )
 
 type Agent struct {
@@ -90,16 +90,18 @@ func main() {
 
 	// Send virtual agent data
 	go func() {
-		//		for {
-		t1 := time.Now()
-		for _, a := range agents {
-			//			spew.Dump(a.Data)
-			_, err = Conn.Write(a.Data)
-		}
+		i := 0
+		for i < 20 {
+			t1 := time.Now()
+			for _, a := range agents {
+				//			spew.Dump(a.Data)
+				_, err = Conn.Write(a.Data)
+			}
 
-		log.Printf("Complete. Count: %d, Took: %s", len(agents), time.Since(t1))
-		//			time.Sleep(Sleep * time.Millisecond)
-		//		}
+			log.Printf("Complete. Count: %d, Took: %s", len(agents), time.Since(t1))
+			time.Sleep(Sleep * time.Millisecond)
+
+		}
 
 	}()
 	//	spew.Dump(count)
@@ -124,7 +126,7 @@ func NewAgent() *Agent {
 	}
 
 	text := fmt.Sprintf("%s|%s|%s|%s|%.1f|%d|%d|%s|%s", agent.Code, agent.Guid, agent.Eth, agent.ComputerName, agent.OsVersionNumber, agent.OsIsServer, agent.OsBit, agent.FullPolicyVersion, agent.TodayPolicyVersion)
-	b := Encrypt(text)
+	b, _ := encryption.Encrypt(key, []byte(text))
 	agent.Data = b
 	return agent
 }
