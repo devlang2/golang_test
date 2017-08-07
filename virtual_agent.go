@@ -18,6 +18,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/iwondory/encryption"
+
 	"github.com/davecgh/go-spew/spew"
 	"github.com/icrowley/fake"
 	"github.com/satori/go.uuid"
@@ -74,10 +76,6 @@ func init() {
 }
 func main() {
 
-	var str = "abc"
-	data_enc := Encrypt(str)
-	spew.Dump(data_enc)
-
 	// Set network
 	log.Printf("Setting network..")
 	ServerAddr, err := net.ResolveUDPAddr("udp", "127.0.0.1:19902")
@@ -131,74 +129,74 @@ func NewAgent() *Agent {
 	return agent
 }
 
-func Encrypt(str string) []byte {
+//func Encrypt(str string) []byte {
 
-	b := []byte(str)
-	//	spew.Dump(b)
-	plaintext := pad(b)
-	spew.Dump(plaintext)
+//	b := []byte(str)
+//	//	spew.Dump(b)
+//	plaintext := pad(b)
+//	spew.Dump(plaintext)
 
-	if len(plaintext)%aes.BlockSize != 0 {
-		panic("plaintext is not a multiple of the block size")
-	}
+//	if len(plaintext)%aes.BlockSize != 0 {
+//		panic("plaintext is not a multiple of the block size")
+//	}
 
-	block, err := aes.NewCipher(key)
-	if err != nil {
-		panic(err)
-	}
+//	block, err := aes.NewCipher(key)
+//	if err != nil {
+//		panic(err)
+//	}
 
-	// The IV needs to be unique, but not secure. Therefore it's common to
-	// include it at the beginning of the ciphertext.
-	ciphertext := make([]byte, aes.BlockSize+len(plaintext))
-	iv := ciphertext[:aes.BlockSize]
-	if _, err := io.ReadFull(rand.Reader, iv); err != nil {
-		panic(err)
-	}
+//	// The IV needs to be unique, but not secure. Therefore it's common to
+//	// include it at the beginning of the ciphertext.
+//	ciphertext := make([]byte, aes.BlockSize+len(plaintext))
+//	iv := ciphertext[:aes.BlockSize]
+//	if _, err := io.ReadFull(rand.Reader, iv); err != nil {
+//		panic(err)
+//	}
 
-	mode := cipher.NewCBCEncrypter(block, iv)
-	mode.CryptBlocks(ciphertext[aes.BlockSize:], plaintext)
+//	mode := cipher.NewCBCEncrypter(block, iv)
+//	mode.CryptBlocks(ciphertext[aes.BlockSize:], plaintext)
 
-	// It's important to remember that ciphertexts must be authenticated
-	// (i.e. by using crypto/hmac) as well as being encrypted in order to
-	// be secure.
+//	// It's important to remember that ciphertexts must be authenticated
+//	// (i.e. by using crypto/hmac) as well as being encrypted in order to
+//	// be secure.
 
-	//	fmt.Printf("%x\n", ciphertext)
-	return ciphertext
-}
+//	//	fmt.Printf("%x\n", ciphertext)
+//	return ciphertext
+//}
 
-func Decrypt(data []byte) ([]byte, error) {
-	block, err := aes.NewCipher(key)
-	if err != nil {
-		return []byte(""), err
-	}
+//func Decrypt(data []byte) ([]byte, error) {
+//	block, err := aes.NewCipher(key)
+//	if err != nil {
+//		return []byte(""), err
+//	}
 
-	if len(data) < aes.BlockSize {
-		return []byte(""), fmt.Errorf("ciphertext too short")
-	}
+//	if len(data) < aes.BlockSize {
+//		return []byte(""), fmt.Errorf("ciphertext too short")
+//	}
 
-	if len(data)%aes.BlockSize != 0 {
-		return []byte(""), fmt.Errorf("ciphertext is not a multiple of the block size")
-	}
+//	if len(data)%aes.BlockSize != 0 {
+//		return []byte(""), fmt.Errorf("ciphertext is not a multiple of the block size")
+//	}
 
-	data_temp := make([]byte, len(data))
-	copy(data_temp, data)
+//	data_temp := make([]byte, len(data))
+//	copy(data_temp, data)
 
-	mode := cipher.NewCBCDecrypter(block, iv)
-	mode.CryptBlocks(data_temp, data)
+//	mode := cipher.NewCBCDecrypter(block, iv)
+//	mode.CryptBlocks(data_temp, data)
 
-	return data_temp, nil
+//	return data_temp, nil
 
-}
+//}
 
-func pad(in []byte) []byte {
-	remains := aes.BlockSize - (len(in) % aes.BlockSize)
-	if remains > 0 {
-		for i := 0; i < remains; i++ {
-			in = append(in, byte(0))
-		}
-	}
-	return in
-}
+//func pad(in []byte) []byte {
+//	remains := aes.BlockSize - (len(in) % aes.BlockSize)
+//	if remains > 0 {
+//		for i := 0; i < remains; i++ {
+//			in = append(in, byte(0))
+//		}
+//	}
+//	return in
+//}
 
 func getVirtualMac() string {
 	result := make([]byte, 17)
