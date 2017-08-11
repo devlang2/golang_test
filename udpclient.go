@@ -3,7 +3,8 @@ package main
 import (
 	"flag"
 	"fmt"
-	"math/rand"
+
+	"crypto/rand"
 	"net"
 	"os"
 	"time"
@@ -18,7 +19,7 @@ func CheckError(err error) {
 }
 
 //rand.Seed(42) // Try changing this number!
-var messages []string
+//var messages []string
 
 func main() {
 
@@ -89,7 +90,7 @@ func printHelp() {
 }
 
 func random(min, max int) int {
-	rand.Seed(time.Now().Unix())
+
 	return rand.Intn(max-min) + min
 }
 
