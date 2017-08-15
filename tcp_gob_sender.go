@@ -14,7 +14,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/davecgh/go-spew/spew"
+	//	"github.com/davecgh/go-spew/spew"
 	"github.com/icrowley/fake"
 )
 
@@ -47,6 +47,7 @@ type Event struct {
 	OsBit              int       // 64
 	FullPolicyVersion  string    // 1026
 	TodayPolicyVersion string    // 1028
+	Sequence           int64
 }
 
 func init() {
@@ -64,7 +65,6 @@ func init() {
 	// Get random value
 	random = rand.New(rand.NewSource(time.Now().UnixNano()))
 }
-
 func main() {
 	conn, err := net.Dial("tcp", "127.0.0.1:8808")
 	if err != nil {
@@ -73,43 +73,66 @@ func main() {
 	}
 	defer conn.Close()
 
-	//	var network bytes.Buffer        // Stand-in for a network connection
-	//	enc := gob.NewEncoder(&network) // Will write to network.
-	encoder := gob.NewEncoder(conn)
-	for i := 0; i < *count; i++ {
-		agent := NewEvent()
-		encoder.Encode(*agent)
-		spew.Dump(agent)
+	seq := int64(1)
+	for {
+		events := make([]*Event, 0, *count)
+		for i := 0; i < *count; i++ {
+			events = append(events, NewEvent(seq))
+			seq++
+		}
+		encoder := gob.NewEncoder(conn)
+		err := encoder.Encode(events)
+		if err != nil {
+			fmt.Println(err.Error())
+			return
+		}
+		fmt.Printf("Count: %d\n", *count)
+		//		spew.Dump(events)
+		fmt.Println("Sleep..")
+		time.Sleep(5 * time.Second)
 	}
-
-	//	a := NewEvent()
-	//	spew.Dump(a)
-	// Initialize the encoder and decoder.  Normally enc and dec would be
-	// bound to network connections and the encoder and decoder would
-	// run in different processes.
-	//var network bytes.Buffer        // Stand-in for a network connection
-	//enc := gob.NewEncoder(&network) // Will write to network.
-	//dec := gob.NewDecoder(&network) // Will read from network.
-	//// Encode (send) the value.
-	//err := enc.Encode(P{3, 4, 5, "Pythagoras"})
-	//if err != nil {
-	//    log.Fatal("encode error:", err)
-	//}
-	//// Decode (receive) the value.
-	//var q Q
-	//err = dec.Decode(&q)
-	//if err != nil {
-	//    log.Fatal("decode error:", err)
-	//}
-	//fmt.Printf("%q: {%d,%d}\n", q.Name, *q.X, *q.Y)
 }
+
+//func main2() {
+//	conn, err := net.Dial("tcp", "127.0.0.1:8808")
+//	if err != nil {
+//		fmt.Println(err.Error())
+//		return
+//	}
+//	defer conn.Close()
+
+//	events := make([]*Event, 0, *count)
+//	for i := 0; i < *count; i++ {
+//		events = append(events, NewEvent())
+//	}
+//	encoder := gob.NewEncoder(conn)
+//	encoder.Encode(events)
+//	spew.Dump(events)
+//}
+
+//func main1() {
+//	conn, err := net.Dial("tcp", "127.0.0.1:8808")
+//	if err != nil {
+//		fmt.Println(err.Error())
+//		return
+//	}
+//	defer conn.Close()
+
+//	var events [2]Event
+//	events[0] = NewEvent()
+//	events[1] = NewEvent()
+
+//	encoder := gob.NewEncoder(conn)
+//	encoder.Encode(events)
+//	spew.Dump(events)
+//}
 
 func printHelp() {
 	fmt.Println(DefaultServerName + " [options]")
 	fs.PrintDefaults()
 }
 
-func NewEvent() *Event {
+func NewEvent(seq int64) *Event {
 	return &Event{
 		Time:               time.Now(),
 		Guid:               uuid.New(),
@@ -121,6 +144,7 @@ func NewEvent() *Event {
 		OsBit:              osBit[rand.Intn(len(osBit))],
 		FullPolicyVersion:  fake.DigitsN(2),
 		TodayPolicyVersion: fake.DigitsN(2),
+		Sequence:           seq,
 	}
 }
 
