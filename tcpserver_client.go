@@ -2,15 +2,18 @@ package main
 
 import (
 	//	"bytes"
+	//	"encoding/binary"
 	"encoding/gob"
 	"flag"
 	"fmt"
 	"math/rand"
 	"net"
 	"os"
+	//	"reflect"
 	"runtime"
 	"strings"
 	"time"
+	"unsafe"
 
 	"github.com/google/uuid"
 
@@ -20,16 +23,21 @@ import (
 
 const (
 	DefaultServerName = "tcpsender"
-	DefaultEventCount = 1
-	DefaultEventLoop  = false
-	Sleep             = 5000 // ms
+
+	DefaultEventSize = 1200
+	DefaultCount     = 200
+	DefaultInterval  = 100 // milliseconds
+	//	DefaultDuration   = 5   // seconds
 	MacChars          = "abcdef0123456789"
+	DefaultServerAddr = "127.0.0.1:8808"
 )
 
 var (
 	fs       *flag.FlagSet
+	size     *int
+	interval *int
 	count    *int
-	loop     *bool
+	addr     *string
 	random   *rand.Rand // Rand for this package.
 	osBit    = [2]int{32, 64}
 	osVer    = [10]float32{10, 10.0, 5.0, 5.1, 5.2, 6, 6.0, 6.1, 6.2, 6.3}
@@ -48,6 +56,7 @@ type Event struct {
 	FullPolicyVersion  string    // 1026
 	TodayPolicyVersion string    // 1028
 	Sequence           int64
+	Dummy              string
 }
 
 func init() {
@@ -57,8 +66,11 @@ func init() {
 
 	// Check flags
 	fs = flag.NewFlagSet("", flag.ExitOnError)
-	count = fs.Int("count", DefaultEventCount, "Event count")
-	loop = fs.Bool("loop", DefaultEventLoop, "Event loop")
+	interval = fs.Int("interval", DefaultInterval, "Interval (ms)")
+	count = fs.Int("count", DefaultCount, "Count")
+	size = fs.Int("size", DefaultEventSize, "Event size")
+	addr = fs.String("addr", DefaultServerAddr, "Server address")
+
 	fs.Usage = printHelp
 	fs.Parse(os.Args[1:])
 
@@ -66,18 +78,33 @@ func init() {
 	random = rand.New(rand.NewSource(time.Now().UnixNano()))
 }
 func main() {
-	conn, err := net.Dial("tcp", "127.0.0.1:8808")
+	fmt.Printf("Size: %d, Count: %d, Interval: %d(ms)\n", *size, *count, *interval)
+	conn, err := net.Dial("tcp", *addr)
 	if err != nil {
 		fmt.Println(err.Error())
 		return
 	}
-	defer conn.Close()
+	//	defer conn.Close()
+	defer func() { conn.Close(); fmt.Println("exit") }()
 
-	seq := int64(1)
-	for {
-		events := make([]*Event, 0, *count)
-		for i := 0; i < *count; i++ {
-			events = append(events, NewEvent(seq))
+	t := new(Event)
+	fmt.Println(unsafe.Sizeof(t))  //  returns 8 - not what I want,
+	fmt.Println(unsafe.Sizeof(*t)) //  returns 24 - what I was
+	t0 := time.Now()
+	seq := int64(0)
+	c := 0
+	for c < *count {
+
+		events := make([]*Event, 0, *size)
+		for i := 0; i < *size; i++ {
+			e := NewEvent(seq)
+
+			//			r := reflect.ValueOf(*e)
+			//			s := binary.Size(*e)
+			//			fmt.Printf("size: %d\n", unsafe.Sizeof(*e))
+			//			spew.Dump(*e)
+
+			events = append(events, e)
 			seq++
 		}
 		encoder := gob.NewEncoder(conn)
@@ -86,11 +113,10 @@ func main() {
 			fmt.Println(err.Error())
 			return
 		}
-		fmt.Printf("Count: %d\n", *count)
-		//		spew.Dump(events)
-		fmt.Println("Sleep..")
-		time.Sleep(5 * time.Second)
+		time.Sleep(time.Duration(*interval) * time.Millisecond)
+		c++
 	}
+	fmt.Printf("Count: %d, EPS: %5.1f\n", seq, float64(seq)/time.Since(t0).Seconds())
 }
 
 //func main2() {
@@ -145,6 +171,7 @@ func NewEvent(seq int64) *Event {
 		FullPolicyVersion:  fake.DigitsN(2),
 		TodayPolicyVersion: fake.DigitsN(2),
 		Sequence:           seq,
+		Dummy:              fake.CharactersN(1800),
 	}
 }
 
