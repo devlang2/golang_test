@@ -13,7 +13,7 @@ import (
 	"runtime"
 	"strings"
 	"time"
-	"unsafe"
+	//	"unsafe"
 
 	"github.com/google/uuid"
 
@@ -87,9 +87,6 @@ func main() {
 	//	defer conn.Close()
 	defer func() { conn.Close(); fmt.Println("exit") }()
 
-	t := new(Event)
-	fmt.Println(unsafe.Sizeof(t))  //  returns 8 - not what I want,
-	fmt.Println(unsafe.Sizeof(*t)) //  returns 24 - what I was
 	t0 := time.Now()
 	seq := int64(0)
 	c := 0
