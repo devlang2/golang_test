@@ -87,23 +87,47 @@ func main() {
 	//	defer conn.Close()
 	defer func() { conn.Close(); fmt.Println("exit") }()
 
+	//	t0 := time.Now()
+	//	seq := int64(0)
+	//	c := 0
+	//	for c < *count {
+	//		t0 := time.Now()
+	//		events := make([]*Event, 0, *size)
+	//		for i := 0; i < *size; i++ {
+	//			e := NewEvent(seq)
+	//			events = append(events, e)
+	//			seq++
+	//		}
+	//		t1 := time.Now()
+	//		fmt.Printf("Generating: %4.1f, ", time.Since(t0).Seconds())
+
+	//		encoder := gob.NewEncoder(conn)
+	//		err := encoder.Encode(events)
+	//		if err != nil {
+	//			fmt.Println(err.Error())
+	//			return
+	//		}
+
+	//		fmt.Printf("Sending: %4.1f\n", time.Since(t1).Seconds())
+	//		time.Sleep(time.Duration(*interval) * time.Millisecond)
+	//		c++
+	//	}
+	//	fmt.Printf("Count: %d, EPS: %5.1f\n", seq, float64(seq)/time.Since(t0).Seconds())
+
+	// Create event
 	t0 := time.Now()
 	seq := int64(0)
+	events := make([]*Event, 0, *size)
+	for i := 0; i < *size; i++ {
+		events = append(events, NewEvent(seq))
+		seq++
+	}
+	fmt.Printf("Generating: %4.1f\n", time.Since(t0).Seconds())
+
+	// Send events
 	c := 0
 	for c < *count {
-
-		events := make([]*Event, 0, *size)
-		for i := 0; i < *size; i++ {
-			e := NewEvent(seq)
-
-			//			r := reflect.ValueOf(*e)
-			//			s := binary.Size(*e)
-			//			fmt.Printf("size: %d\n", unsafe.Sizeof(*e))
-			//			spew.Dump(*e)
-
-			events = append(events, e)
-			seq++
-		}
+		t1 := time.Now()
 		encoder := gob.NewEncoder(conn)
 		err := encoder.Encode(events)
 		if err != nil {
@@ -111,9 +135,10 @@ func main() {
 			return
 		}
 		time.Sleep(time.Duration(*interval) * time.Millisecond)
+		fmt.Printf("Sending: %4.1f\n", time.Since(t1).Seconds())
 		c++
 	}
-	fmt.Printf("Count: %d, EPS: %5.1f\n", seq, float64(seq)/time.Since(t0).Seconds())
+
 }
 
 //func main2() {
