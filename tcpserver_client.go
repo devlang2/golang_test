@@ -59,6 +59,11 @@ type Event struct {
 	Dummy              string
 }
 
+type Result struct {
+	Code    int
+	Message string
+}
+
 func init() {
 	// Set CPU
 	runtime.GOMAXPROCS(1)
@@ -134,6 +139,13 @@ func main() {
 			fmt.Println(err.Error())
 			return
 		}
+		//		decoder := gob.NewDecoder(conn)
+		//		err = decoder.Decode(result)
+		//		if err != nil {
+		//			fmt.Println(err.Error())
+		//			return
+		//		}
+
 		time.Sleep(time.Duration(*interval) * time.Millisecond)
 		fmt.Printf("Sending: %4.1f\n", time.Since(t1).Seconds())
 		c++
