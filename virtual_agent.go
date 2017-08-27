@@ -18,7 +18,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/devlang2/golibs/encryption"
+	"github.com/devplayg/golibs/encryption"
 
 	//	"github.com/davecgh/go-spew/spew"
 	"github.com/icrowley/fake"
