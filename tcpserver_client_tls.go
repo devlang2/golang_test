@@ -277,6 +277,7 @@ func newTLSConfig(caPemPath, caKeyPath string) (*tls.Config, error) {
 
 	config = &tls.Config{
 		Certificates:       []tls.Certificate{cer},
+		MinVersion:         tls.VersionTLS12,
 		InsecureSkipVerify: true,
 	}
 
