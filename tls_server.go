@@ -13,7 +13,16 @@ func main() {
 	if err != nil {
 		log.Fatalf("server: loadkeys: %s", err)
 	}
-	config := tls.Config{Certificates: []tls.Certificate{cert}}
+	config := tls.Config{
+		Certificates: []tls.Certificate{cert},
+		MinVersion:   tls.VersionTLS12,
+		CipherSuites: []uint16{
+			tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+			tls.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
+			tls.TLS_RSA_WITH_AES_256_GCM_SHA384,
+			tls.TLS_RSA_WITH_AES_256_CBC_SHA,
+		},
+	}
 	config.Rand = rand.Reader
 	service := ":8808"
 	listener, err := tls.Listen("tcp", service, &config)

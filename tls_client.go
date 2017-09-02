@@ -13,7 +13,17 @@ func main() {
 	if err != nil {
 		log.Fatalf("server: loadkeys: %s", err)
 	}
-	config := tls.Config{Certificates: []tls.Certificate{cert}, InsecureSkipVerify: true}
+	config := tls.Config{
+		Certificates:       []tls.Certificate{cert},
+		InsecureSkipVerify: true,
+		MinVersion:         tls.VersionTLS12,
+		CipherSuites: []uint16{
+			tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+			tls.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
+			tls.TLS_RSA_WITH_AES_256_GCM_SHA384,
+			tls.TLS_RSA_WITH_AES_256_CBC_SHA,
+		},
+	}
 	conn, err := tls.Dial("tcp", "192.168.0.3:8808", &config)
 	if err != nil {
 		log.Fatalf("client: dial: %s", err)
