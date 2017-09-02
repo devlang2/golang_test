@@ -1,23 +1,18 @@
 package main
 
 import (
-	//	"bytes"
-	//	"encoding/binary"
+	"crypto/tls"
 	"encoding/gob"
 	"flag"
 	"fmt"
 	"math/rand"
 	"net"
 	"os"
-	//	"reflect"
 	"runtime"
 	"strings"
 	"time"
-	//	"unsafe"
 
 	"github.com/google/uuid"
-
-	//	"github.com/davecgh/go-spew/spew"
 	"github.com/icrowley/fake"
 )
 
@@ -29,7 +24,7 @@ const (
 	DefaultInterval  = 100 // milliseconds
 	//	DefaultDuration   = 5   // seconds
 	MacChars          = "abcdef0123456789"
-	DefaultServerAddr = "127.0.0.1:8808"
+	DefaultServerAddr = "192.168.0.3:8808"
 )
 
 var (
@@ -84,7 +79,20 @@ func init() {
 }
 func main() {
 	fmt.Printf("Size: %d, Count: %d, Interval: %d(ms)\n", *size, *count, *interval)
-	conn, err := net.Dial("tcp", *addr)
+
+	//	config, err := newTLSConfig("server.crt", "server.key")
+	config := &tls.Config{
+		InsecureSkipVerify: true,
+	}
+
+	//	if err != nil {
+	//		fmt.Println(err.Error())
+	//		return
+	//	}
+
+	//	conn, err := net.Dial("tcp", *addr)
+
+	conn, err := tls.Dial("tcp", *addr, config)
 	if err != nil {
 		fmt.Println(err.Error())
 		return
@@ -220,4 +228,54 @@ func getVirtualMac() string {
 	}
 
 	return string(result)
+}
+
+func newTLSConfig(caPemPath, caKeyPath string) (*tls.Config, error) {
+	var config *tls.Config
+
+	//	caPem, err := ioutil.ReadFile(caPemPath)
+	//	if err != nil {
+	//		return nil, err
+	//	}
+	//	ca, err := x509.ParseCertificate(caPem)
+	//	if err != nil {
+	//		return nil, err
+	//	}
+
+	//	caKey, err := ioutil.ReadFile(caKeyPath)
+	//	if err != nil {
+	//		return nil, err
+	//	}
+	//	key, err := x509.ParsePKCS1PrivateKey(caKey)
+	//	if err != nil {
+	//		return nil, err
+	//	}
+	//	pool := x509.NewCertPool()
+	//	pool.AddCert(ca)
+
+	//	cert := tls.Certificate{
+	//		Certificate: [][]byte{caPem},
+	//		PrivateKey:  key,
+	//	}
+
+	//	config = &tls.Config{
+	//		ClientAuth:   tls.RequireAndVerifyClientCert,
+	//		Certificates: []tls.Certificate{cert},
+	//		ClientCAs:    pool,
+	//	}
+
+	//	config.Rand = rand.Reader
+
+	//	return config, nil
+
+	cer, err := tls.LoadX509KeyPair(caPemPath, caKeyPath)
+	if err != nil {
+		fmt.Println(err)
+
+		return nil, err
+	}
+
+	config = &tls.Config{Certificates: []tls.Certificate{cer}}
+
+	return config, nil
 }
