@@ -80,10 +80,10 @@ func init() {
 func main() {
 	fmt.Printf("Size: %d, Count: %d, Interval: %d(ms)\n", *size, *count, *interval)
 
-	//	config, err := newTLSConfig("server.crt", "server.key")
-	config := &tls.Config{
-		InsecureSkipVerify: true,
-	}
+	config, err := newTLSConfig("server.crt", "server.key")
+	//	config := &tls.Config{
+	//		InsecureSkipVerify: true,
+	//	}
 
 	//	if err != nil {
 	//		fmt.Println(err.Error())
@@ -275,7 +275,10 @@ func newTLSConfig(caPemPath, caKeyPath string) (*tls.Config, error) {
 		return nil, err
 	}
 
-	config = &tls.Config{Certificates: []tls.Certificate{cer}}
+	config = &tls.Config{
+		Certificates:       []tls.Certificate{cer},
+		InsecureSkipVerify: true,
+	}
 
 	return config, nil
 }
