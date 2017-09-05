@@ -3,52 +3,88 @@ package main
 import (
 	"crypto/tls"
 	"crypto/x509"
-	"fmt"
-	"io"
+	"io/ioutil"
 	"log"
+	"net/http"
+
+	"github.com/levigross/grequests"
 )
 
 func main() {
-	cert, err := tls.LoadX509KeyPair("certs/client.pem", "certs/client.key")
+	cert, err := tls.LoadX509KeyPair("cert.pem", "key.pem")
 	if err != nil {
-		log.Fatalf("server: loadkeys: %s", err)
+		log.Fatalln("Unable to load cert", err)
 	}
-	config := tls.Config{
-		Certificates:       []tls.Certificate{cert},
-		InsecureSkipVerify: true,
-		MinVersion:         tls.VersionTLS12,
 
-		CipherSuites: []uint16{
-			//			tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
-			//			tls.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
-			tls.TLS_RSA_WITH_AES_256_GCM_SHA384,
-			//			tls.TLS_RSA_WITH_AES_256_CBC_SHA,
+	clientCACert, err := ioutil.ReadFile("cert.pem")
+	if err != nil {
+		log.Fatal("Unable to open cert", err)
+	}
+
+	clientCertPool := x509.NewCertPool()
+	clientCertPool.AppendCertsFromPEM(clientCACert)
+
+	tlsConfig := &tls.Config{
+		Certificates:             []tls.Certificate{cert},
+		RootCAs:                  clientCertPool,
+		InsecureSkipVerify:       true,
+		MinVersion:               tls.VersionTLS12,
+		MaxVersion:               tls.VersionTLS12,
+		PreferServerCipherSuites: true,
+	}
+
+	tlsConfig.BuildNameToCertificate()
+	ro := &grequests.RequestOptions{
+		HTTPClient: &http.Client{
+			Transport: &http.Transport{TLSClientConfig: tlsConfig},
 		},
 	}
-	conn, err := tls.Dial("tcp", "192.168.0.3:8808", &config)
+	resp, err := grequests.Get("https://192.168.72.128:8080", ro)
 	if err != nil {
-		log.Fatalf("client: dial: %s", err)
+		log.Println("Unable to speak to our server", err)
 	}
-	defer conn.Close()
-	log.Println("client: connected to: ", conn.RemoteAddr())
 
-	state := conn.ConnectionState()
-	for _, v := range state.PeerCertificates {
-		fmt.Println(x509.MarshalPKIXPublicKey(v.PublicKey))
-		fmt.Println(v.Subject)
-	}
-	log.Println("client: handshake: ", state.HandshakeComplete)
-	log.Println("client: mutual: ", state.NegotiatedProtocolIsMutual)
+	log.Println(resp.String())
 
-	message := "Hello\n"
-	n, err := io.WriteString(conn, message)
-	if err != nil {
-		log.Fatalf("client: write: %s", err)
-	}
-	log.Printf("client: wrote %q (%d bytes)", message, n)
+	//	conn, err := tls.Dial("tcp", "192.168.72.128:8080", tlsConfig)
+	//	if err != nil {
+	//		log.Println(err)
+	//		return
+	//	}
+	//	defer conn.Close()
 
-	reply := make([]byte, 256)
-	n, err = conn.Read(reply)
-	log.Printf("client: read %q (%d bytes)", string(reply[:n]), n)
-	log.Print("client: exiting")
+	//	n, err := conn.Write([]byte("hello\n"))
+	//	if err != nil {
+	//		log.Println(n, err)
+	//		return
+	//	}
+
+	//	buf := make([]byte, 100)
+	//	n, err = conn.Read(buf)
+	//	if err != nil {
+	//		log.Println(n, err)
+	//		return
+	//	}
+
+	//	println(string(buf[:n]))
 }
+
+//state := conn.ConnectionState()
+//for _, v := range state.PeerCertificates {
+//	fmt.Println(x509.MarshalPKIXPublicKey(v.PublicKey))
+//	fmt.Println(v.Subject)
+//}
+//log.Println("client: handshake: ", state.HandshakeComplete)
+//log.Println("client: mutual: ", state.NegotiatedProtocolIsMutual)
+
+//message := "Hello\n"
+//n, err := io.WriteString(conn, message)
+//if err != nil {
+//	log.Fatalf("client: write: %s", err)
+//}
+//log.Printf("client: wrote %q (%d bytes)", message, n)
+
+//reply := make([]byte, 256)
+//n, err = conn.Read(reply)
+//log.Printf("client: read %q (%d bytes)", string(reply[:n]), n)
+//log.Print("client: exiting")

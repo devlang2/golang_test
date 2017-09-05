@@ -1,77 +1,52 @@
 package main
 
 import (
-	"crypto/rand"
 	"crypto/tls"
 	"crypto/x509"
+	"fmt"
+	"io/ioutil"
 	"log"
-	"net"
+	"net/http"
 )
 
-func main() {
-	cert, err := tls.LoadX509KeyPair("certs/server.pem", "certs/server.key")
-	if err != nil {
-		log.Fatalf("server: loadkeys: %s", err)
-	}
-	config := tls.Config{
-		Certificates: []tls.Certificate{cert},
-		MinVersion:   tls.VersionTLS12,
-		CipherSuites: []uint16{
-			tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
-			tls.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
-			tls.TLS_RSA_WITH_AES_256_GCM_SHA384,
-			tls.TLS_RSA_WITH_AES_256_CBC_SHA,
-		},
-	}
-	config.Rand = rand.Reader
-	service := ":8808"
-	listener, err := tls.Listen("tcp", service, &config)
-	if err != nil {
-		log.Fatalf("server: listen: %s", err)
-	}
-	log.Print("server: listening")
-	for {
-		conn, err := listener.Accept()
-		if err != nil {
-			log.Printf("server: accept: %s", err)
-			break
-		}
-		defer conn.Close()
-		log.Printf("server: accepted from %s", conn.RemoteAddr())
-		tlscon, ok := conn.(*tls.Conn)
-		if ok {
-			log.Print("ok=true")
-			state := tlscon.ConnectionState()
-			for _, v := range state.PeerCertificates {
-				log.Print(x509.MarshalPKIXPublicKey(v.PublicKey))
-			}
-		}
-		go handleClient(conn)
-	}
+// HelloUser is a view that greets a user
+func HelloUser(w http.ResponseWriter, req *http.Request) {
+	fmt.Fprintf(w, "Hello %v! \n", req.TLS.PeerCertificates[0].EmailAddresses[0])
 }
 
-func handleClient(conn net.Conn) {
-	defer conn.Close()
-	buf := make([]byte, 512)
-	for {
-		log.Print("server: conn: waiting")
-		n, err := conn.Read(buf)
-		if err != nil {
-			if err != nil {
-				log.Printf("server: conn: read: %s", err)
-			}
-			break
-		}
-		log.Printf("server: conn: echo %q\n", string(buf[:n]))
-		n, err = conn.Write(buf[:n])
-
-		n, err = conn.Write(buf[:n])
-		log.Printf("server: conn: wrote %d bytes", n)
-
-		if err != nil {
-			log.Printf("server: write: %s", err)
-			break
-		}
+func main() {
+	certBytes, err := ioutil.ReadFile("cert.pem")
+	if err != nil {
+		log.Fatalln("Unable to read cert.pem", err)
 	}
-	log.Println("server: conn: closed")
+
+	clientCertPool := x509.NewCertPool()
+	if ok := clientCertPool.AppendCertsFromPEM(certBytes); !ok {
+		log.Fatalln("Unable to add certificate to certificate pool")
+	}
+
+	tlsConfig := &tls.Config{
+		// Reject any TLS certificate that cannot be validated
+		//		ClientAuth: tls.RequireAndVerifyClientCert,
+		ClientAuth: tls.RequireAnyClientCert,
+		// Ensure that we only use our "CA" to validate certificates
+		ClientCAs: clientCertPool,
+		// PFS because we can
+		CipherSuites: []uint16{tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384, tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256},
+		// Force it server side
+		PreferServerCipherSuites: true,
+		// TLS 1.2 because we can
+		MinVersion: tls.VersionTLS12,
+	}
+
+	tlsConfig.BuildNameToCertificate()
+
+	http.HandleFunc("/", HelloUser)
+
+	httpServer := &http.Server{
+		Addr:      ":8080",
+		TLSConfig: tlsConfig,
+	}
+
+	log.Println(httpServer.ListenAndServeTLS("cert.pem", "key.pem"))
 }
