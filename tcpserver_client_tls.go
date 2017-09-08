@@ -1,18 +1,23 @@
 package main
 
 import (
-	"crypto/tls"
+	//	"bytes"
+	//	"encoding/binary"
 	"encoding/gob"
 	"flag"
 	"fmt"
 	"math/rand"
 	"net"
 	"os"
+	//	"reflect"
 	"runtime"
 	"strings"
 	"time"
+	//	"unsafe"
 
 	"github.com/google/uuid"
+
+	//	"github.com/davecgh/go-spew/spew"
 	"github.com/icrowley/fake"
 )
 
@@ -24,7 +29,7 @@ const (
 	DefaultInterval  = 100 // milliseconds
 	//	DefaultDuration   = 5   // seconds
 	MacChars          = "abcdef0123456789"
-	DefaultServerAddr = "192.168.0.3:8808"
+	DefaultServerAddr = "127.0.0.1:8808"
 )
 
 var (
@@ -79,53 +84,13 @@ func init() {
 }
 func main() {
 	fmt.Printf("Size: %d, Count: %d, Interval: %d(ms)\n", *size, *count, *interval)
-
-	config, err := newTLSConfig("server.crt", "server.key")
-	//	config := &tls.Config{
-	//		InsecureSkipVerify: true,
-	//	}
-
-	//	if err != nil {
-	//		fmt.Println(err.Error())
-	//		return
-	//	}
-
-	//	conn, err := net.Dial("tcp", *addr)
-
-	conn, err := tls.Dial("tcp", *addr, config)
+	conn, err := net.Dial("tcp", *addr)
 	if err != nil {
 		fmt.Println(err.Error())
 		return
 	}
 	//	defer conn.Close()
 	defer func() { conn.Close(); fmt.Println("exit") }()
-
-	//	t0 := time.Now()
-	//	seq := int64(0)
-	//	c := 0
-	//	for c < *count {
-	//		t0 := time.Now()
-	//		events := make([]*Event, 0, *size)
-	//		for i := 0; i < *size; i++ {
-	//			e := NewEvent(seq)
-	//			events = append(events, e)
-	//			seq++
-	//		}
-	//		t1 := time.Now()
-	//		fmt.Printf("Generating: %4.1f, ", time.Since(t0).Seconds())
-
-	//		encoder := gob.NewEncoder(conn)
-	//		err := encoder.Encode(events)
-	//		if err != nil {
-	//			fmt.Println(err.Error())
-	//			return
-	//		}
-
-	//		fmt.Printf("Sending: %4.1f\n", time.Since(t1).Seconds())
-	//		time.Sleep(time.Duration(*interval) * time.Millisecond)
-	//		c++
-	//	}
-	//	fmt.Printf("Count: %d, EPS: %5.1f\n", seq, float64(seq)/time.Since(t0).Seconds())
 
 	// Create event
 	t0 := time.Now()
@@ -147,57 +112,12 @@ func main() {
 			fmt.Println(err.Error())
 			return
 		}
-		//		decoder := gob.NewDecoder(conn)
-		//		err = decoder.Decode(result)
-		//		if err != nil {
-		//			fmt.Println(err.Error())
-		//			return
-		//		}
 
 		time.Sleep(time.Duration(*interval) * time.Millisecond)
 		fmt.Printf("Sending: %4.1f\n", time.Since(t1).Seconds())
 		c++
 	}
 
-}
-
-//func main2() {
-//	conn, err := net.Dial("tcp", "127.0.0.1:8808")
-//	if err != nil {
-//		fmt.Println(err.Error())
-//		return
-//	}
-//	defer conn.Close()
-
-//	events := make([]*Event, 0, *count)
-//	for i := 0; i < *count; i++ {
-//		events = append(events, NewEvent())
-//	}
-//	encoder := gob.NewEncoder(conn)
-//	encoder.Encode(events)
-//	spew.Dump(events)
-//}
-
-//func main1() {
-//	conn, err := net.Dial("tcp", "127.0.0.1:8808")
-//	if err != nil {
-//		fmt.Println(err.Error())
-//		return
-//	}
-//	defer conn.Close()
-
-//	var events [2]Event
-//	events[0] = NewEvent()
-//	events[1] = NewEvent()
-
-//	encoder := gob.NewEncoder(conn)
-//	encoder.Encode(events)
-//	spew.Dump(events)
-//}
-
-func printHelp() {
-	fmt.Println(DefaultServerName + " [options]")
-	fs.PrintDefaults()
 }
 
 func NewEvent(seq int64) *Event {
@@ -230,66 +150,7 @@ func getVirtualMac() string {
 	return string(result)
 }
 
-func newTLSConfig(caPemPath, caKeyPath string) (*tls.Config, error) {
-	var config *tls.Config
-
-	//	caPem, err := ioutil.ReadFile(caPemPath)
-	//	if err != nil {
-	//		return nil, err
-	//	}
-	//	ca, err := x509.ParseCertificate(caPem)
-	//	if err != nil {
-	//		return nil, err
-	//	}
-
-	//	caKey, err := ioutil.ReadFile(caKeyPath)
-	//	if err != nil {
-	//		return nil, err
-	//	}
-	//	key, err := x509.ParsePKCS1PrivateKey(caKey)
-	//	if err != nil {
-	//		return nil, err
-	//	}
-	//	pool := x509.NewCertPool()
-	//	pool.AddCert(ca)
-
-	//	cert := tls.Certificate{
-	//		Certificate: [][]byte{caPem},
-	//		PrivateKey:  key,
-	//	}
-
-	//	config = &tls.Config{
-	//		ClientAuth:   tls.RequireAndVerifyClientCert,
-	//		Certificates: []tls.Certificate{cert},
-	//		ClientCAs:    pool,
-	//	}
-
-	//	config.Rand = rand.Reader
-
-	//	return config, nil
-
-	cer, err := tls.LoadX509KeyPair(caPemPath, caKeyPath)
-	if err != nil {
-		fmt.Println(err)
-
-		return nil, err
-	}
-
-	config = &tls.Config{
-		//		Certificates:       []tls.Certificate{cer},
-		//		MinVersion:         tls.VersionTLS12,
-		//		InsecureSkipVerify: true,
-		Certificates:       []tls.Certificate{cer},
-		MinVersion:         tls.VersionTLS12,
-		InsecureSkipVerify: true,
-		CurvePreferences:   []tls.CurveID{tls.CurveP521, tls.CurveP384, tls.CurveP256},
-		CipherSuites: []uint16{
-			tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
-			tls.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
-			tls.TLS_RSA_WITH_AES_256_GCM_SHA384,
-			tls.TLS_RSA_WITH_AES_256_CBC_SHA,
-		},
-	}
-
-	return config, nil
+func printHelp() {
+	fmt.Println(DefaultServerName + " [options]")
+	fs.PrintDefaults()
 }
