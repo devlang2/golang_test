@@ -2,12 +2,9 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// +build ignore
-
 // Generate a self-signed X.509 certificate for a TLS server. Outputs to
 // 'cert.pem' and 'key.pem' and will overwrite existing files.
-
-// https://golang.org/src/crypto/x509/example_test.go
+// go run generate_client_cert.go -email-address=iwondory@gmail.com -ca -ecdsa-curve=P521
 
 package main
 
@@ -23,19 +20,17 @@ import (
 	"fmt"
 	"log"
 	"math/big"
-	"net"
 	"os"
-	"strings"
 	"time"
 )
 
 var (
-	host       = flag.String("host", "10.0.7.194", "Comma-separated hostnames and IPs to generate a certificate for")
-	validFrom  = flag.String("start-date", "", "Creation date formatted as Jan 1 15:04:05 2011")
-	validFor   = flag.Duration("duration", 365*24*time.Hour, "Duration that certificate is valid for")
-	isCA       = flag.Bool("ca", false, "whether this cert should be its own Certificate Authority")
-	rsaBits    = flag.Int("rsa-bits", 2048, "Size of RSA key to generate. Ignored if --ecdsa-curve is set")
-	ecdsaCurve = flag.String("ecdsa-curve", "", "ECDSA curve to use to generate a key. Valid values are P224, P256, P384, P521")
+	emailAddress = flag.String("email-address", "", "The email address of the user you wish to create the certificate for")
+	validFrom    = flag.String("start-date", "", "Creation date formatted as Jan 1 15:04:05 2011")
+	validFor     = flag.Duration("duration", 365*24*time.Hour, "Duration that certificate is valid for")
+	isCA         = flag.Bool("ca", false, "whether this cert should be its own Certificate Authority")
+	rsaBits      = flag.Int("rsa-bits", 2048, "Size of RSA key to generate. Ignored if --ecdsa-curve is set")
+	ecdsaCurve   = flag.String("ecdsa-curve", "", "ECDSA curve to use to generate a key. Valid values are P224, P256, P384, P521")
 )
 
 func publicKey(priv interface{}) interface{} {
@@ -68,8 +63,8 @@ func pemBlockForKey(priv interface{}) *pem.Block {
 func main() {
 	flag.Parse()
 
-	if len(*host) == 0 {
-		log.Fatalf("Missing required --host parameter")
+	if len(*emailAddress) == 0 {
+		log.Fatalf("Missing required --email-address parameter")
 	}
 
 	var priv interface{}
@@ -115,24 +110,18 @@ func main() {
 	template := x509.Certificate{
 		SerialNumber: serialNumber,
 		Subject: pkix.Name{
-			Organization: []string{"Wins Inc."},
+			Organization: []string{"Acme Co"},
 		},
 		NotBefore: notBefore,
 		NotAfter:  notAfter,
 
-		KeyUsage:              x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
-		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
+		KeyUsage: x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
+		ExtKeyUsage: []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth,
+			x509.ExtKeyUsageClientAuth},
 		BasicConstraintsValid: true,
 	}
-
-	hosts := strings.Split(*host, ",")
-	for _, h := range hosts {
-		if ip := net.ParseIP(h); ip != nil {
-			template.IPAddresses = append(template.IPAddresses, ip)
-		} else {
-			template.DNSNames = append(template.DNSNames, h)
-		}
-	}
+	template.DNSNames = append(template.DNSNames, "localhost")
+	template.EmailAddresses = append(template.EmailAddresses, *emailAddress)
 
 	if *isCA {
 		template.IsCA = true
