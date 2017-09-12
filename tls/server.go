@@ -38,7 +38,7 @@ func main() {
 		PreferServerCipherSuites: true,
 		MinVersion:               tls.VersionTLS12,
 	}
-	ln, err := tls.Listen("tcp", "localhost:8080", config)
+	ln, err := tls.Listen("tcp", ":8080", config)
 	if err != nil {
 		log.Println(err)
 		return
