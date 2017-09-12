@@ -27,16 +27,16 @@ func main() {
 
 	conf := &tls.Config{
 		CipherSuites: []uint16{
-			tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
 			tls.TLS_RSA_WITH_AES_256_GCM_SHA384,
 		},
 		InsecureSkipVerify: true,
 		Certificates:       []tls.Certificate{cert},
 		RootCAs:            clientCertPool,
+		MinVersion:         tls.VersionTLS12,
 	}
 	conf.BuildNameToCertificate()
 
-	conn, err := tls.Dial("tcp", "127.0.0.1:8080", conf)
+	conn, err := tls.Dial("tcp", "192.168.239.131:8080", conf)
 	if err != nil {
 		log.Println(err)
 		return
