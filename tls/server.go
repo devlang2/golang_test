@@ -3,6 +3,8 @@ package main
 import (
 	"bufio"
 	"crypto/tls"
+	"crypto/x509"
+	"io/ioutil"
 	"log"
 	"net"
 )
@@ -16,7 +18,26 @@ func main() {
 		return
 	}
 
-	config := &tls.Config{Certificates: []tls.Certificate{cer}}
+	// Load our CA certificate
+	clientCACert, err := ioutil.ReadFile("cert.pem")
+	if err != nil {
+		log.Fatal("Unable to open cert", err)
+	}
+	clientCertPool := x509.NewCertPool()
+	clientCertPool.AppendCertsFromPEM(clientCACert)
+
+	config := &tls.Config{
+		ClientAuth:   tls.RequireAndVerifyClientCert,
+		Certificates: []tls.Certificate{cer},
+		RootCAs:      clientCertPool,
+		ClientCAs:    clientCertPool,
+		CipherSuites: []uint16{
+			tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
+			tls.TLS_RSA_WITH_AES_256_GCM_SHA384,
+		},
+		PreferServerCipherSuites: true,
+		MinVersion:               tls.VersionTLS12,
+	}
 	ln, err := tls.Listen("tcp", "localhost:8080", config)
 	if err != nil {
 		log.Println(err)
