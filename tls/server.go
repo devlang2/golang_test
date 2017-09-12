@@ -35,7 +35,7 @@ func main() {
 			tls.TLS_RSA_WITH_AES_256_GCM_SHA384,
 		},
 		PreferServerCipherSuites: true,
-		//		MinVersion:               tls.VersionTLS12,
+		MinVersion:               tls.VersionTLS12,
 	}
 	ln, err := tls.Listen("tcp", ":8080", config)
 	if err != nil {
