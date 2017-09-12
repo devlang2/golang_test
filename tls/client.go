@@ -29,10 +29,12 @@ func main() {
 		CipherSuites: []uint16{
 			tls.TLS_RSA_WITH_AES_256_GCM_SHA384,
 		},
-		InsecureSkipVerify: true,
-		Certificates:       []tls.Certificate{cert},
-		RootCAs:            clientCertPool,
-		MinVersion:         tls.VersionTLS12,
+		InsecureSkipVerify:       true,
+		Certificates:             []tls.Certificate{cert},
+		RootCAs:                  clientCertPool,
+		MinVersion:               tls.VersionTLS12,
+		MaxVersion:               tls.VersionTLS12,
+		PreferServerCipherSuites: true,
 	}
 	conf.BuildNameToCertificate()
 
