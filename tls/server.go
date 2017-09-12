@@ -37,7 +37,6 @@ func main() {
 		PreferServerCipherSuites: true,
 		MinVersion:               tls.VersionTLS12,
 		MaxVersion:               tls.VersionTLS12,
-		PreferServerCipherSuites: true,
 	}
 	ln, err := tls.Listen("tcp", ":8080", config)
 	if err != nil {
