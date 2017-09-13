@@ -38,7 +38,7 @@ func main() {
 	}
 	conf.BuildNameToCertificate()
 
-	conn, err := tls.Dial("tcp", "192.168.239.131:8080", conf)
+	conn, err := tls.Dial("tcp", "192.168.239.131:443", conf)
 	if err != nil {
 		log.Println(err)
 		return
