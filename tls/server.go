@@ -4,12 +4,26 @@ import (
 	"bufio"
 	"crypto/tls"
 	"crypto/x509"
+	"flag"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"net"
+	"os"
 )
 
+// Flag set
+var fs *flag.FlagSet
+
 func main() {
+	// Set flags
+	fs = flag.NewFlagSet("", flag.ExitOnError)
+	var (
+		addr = fs.String("addr", "", "Server address")
+	)
+	fs.Usage = printHelp
+	fs.Parse(os.Args[1:])
+
 	log.SetFlags(log.Lshortfile)
 
 	cer, err := tls.LoadX509KeyPair("cert.pem", "key.pem")
@@ -38,7 +52,7 @@ func main() {
 		MinVersion:               tls.VersionTLS12,
 		MaxVersion:               tls.VersionTLS12,
 	}
-	ln, err := tls.Listen("tcp", ":443", config)
+	ln, err := tls.Listen("tcp", *addr, config)
 	if err != nil {
 		log.Println(err)
 		return
@@ -73,4 +87,9 @@ func handleConnection(conn net.Conn) {
 			return
 		}
 	}
+}
+
+func printHelp() {
+	fmt.Println("[options]")
+	fs.PrintDefaults()
 }

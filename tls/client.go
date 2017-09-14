@@ -8,8 +8,6 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
-
-	"github.com/davecgh/go-spew/spew"
 )
 
 // Flag set
@@ -54,7 +52,6 @@ func main() {
 	}
 	conf.BuildNameToCertificate()
 
-	spew.Dump(addr)
 	conn, err := tls.Dial("tcp", *addr, conf)
 	if err != nil {
 		log.Println(err)
