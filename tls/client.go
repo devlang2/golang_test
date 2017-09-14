@@ -3,11 +3,27 @@ package main
 import (
 	"crypto/tls"
 	"crypto/x509"
+	"flag"
+	"fmt"
 	"io/ioutil"
 	"log"
+	"os"
+
+	"github.com/davecgh/go-spew/spew"
 )
 
+// Flag set
+var fs *flag.FlagSet
+
 func main() {
+	// Set flags
+	fs = flag.NewFlagSet("", flag.ExitOnError)
+	var (
+		addr = fs.String("addr", "", "Server address")
+	)
+	fs.Usage = printHelp
+	fs.Parse(os.Args[1:])
+
 	log.SetFlags(log.Lshortfile)
 
 	// Load our TLS key pair to use for authentication
@@ -38,7 +54,8 @@ func main() {
 	}
 	conf.BuildNameToCertificate()
 
-	conn, err := tls.Dial("tcp", "192.168.239.131:443", conf)
+	spew.Dump(addr)
+	conn, err := tls.Dial("tcp", *addr, conf)
 	if err != nil {
 		log.Println(err)
 		return
@@ -61,9 +78,7 @@ func main() {
 	println(string(buf[:n]))
 }
 
-//tlsConfig := &tls.Config{
-//	Certificates: []tls.Certificate{cert},
-//	RootCAs:      clientCertPool,
-//}
-
-//tlsConfig.BuildNameToCertificate()
+func printHelp() {
+	fmt.Println("[options]")
+	fs.PrintDefaults()
+}
