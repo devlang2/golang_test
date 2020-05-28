@@ -91,18 +91,7 @@ func main() {
 		time.Sleep(1 * time.Second)
 	}
 
-	//	conn2.Write([]byte("<3>1 "))
-	//	conn2.Write([]byte("2017-02-03T22:14:15.003Z wondory.com su - ID47 - Message from TCP client "))
-	//	conn2.Write([]byte("\n"))
-	//	conn2.Write([]byte("2017-02-03T22:14:15.003Z wondory.com su - ID47 - Message from TCP client "))
-	//	conn2.Write([]byte("\n<34>1 2017-02-03T22:14:15.003Z wondory.com su - ID47 - Message from TCP client"))
-
-	//	for i := 0; i < 10; i++ {
-	//	}
-	//	text := "<34>1 2017-02-03T22:14:15.003Z wondory.com su - ID47 - Message from TCP client"
-	//	//	fmt.Fprintf(conn2, text+"\n")
-	//	conn2.Write([]byte(text))
-
+	
 }
 
 func printHelp() {
