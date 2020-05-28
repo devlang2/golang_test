@@ -4,7 +4,7 @@
 
 // Generate a self-signed X.509 certificate for a TLS server. Outputs to
 // 'cert.pem' and 'key.pem' and will overwrite existing files.
-// go run generate_client_cert.go -email-address=iwondory@gmail.com -ca -ecdsa-curve=P521
+// go run generate_client_cert.go -email-address=aaa@gmail.com -ca -ecdsa-curve=P521
 
 package main
 
