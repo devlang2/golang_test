@@ -24,7 +24,7 @@ func init() {
 func main() {
 	//	spew.Println("hello")
 
-	b := []byte("<34>1 2017-02-03T22:14:15.003Z wondory.com su - ID47 - Message from TCP client")
+	b := []byte("<34>1 2017-02-03T22:14:15.003Z aaaa.com su - ID47 - Message from TCP client")
 	s := NewSyslogDelimiter(256)
 	s.buffer = append(s.buffer, b...)
 
